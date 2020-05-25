@@ -6,11 +6,15 @@ import (
 	"net"
 	"os"
 	"time"
-	"math/rand"
+	// "math/rand"
 	"bufio"
-    "fmt"
+    // "fmt"
     "strings"
 )
+
+var list_proxy_used []string;
+var current_item int = 0;
+
 
 func get_list_proxy() []string{
 	file, err := os.Open("listproxy.txt")
@@ -29,16 +33,29 @@ func get_list_proxy() []string{
  
     file.Close()
  
-    for _, eachline := range txtlines {
-        fmt.Println(eachline)
-    }
+    // for _, eachline := range txtlines {
+    //     fmt.Println(eachline)
+    // }
     return txtlines
 }
 
 func select_proxy() string{
+	var proxy_select string
 	listproxies := get_list_proxy()
-	rand.Seed(time.Now().Unix())
-	return listproxies[rand.Intn(len(listproxies))]
+
+	//Get random value proxy
+	// rand.Seed(time.Now().Unix())
+	// return listproxies[rand.Intn(len(listproxies))]
+	if(len(list_proxy_used) >= len(listproxies)){
+		//Reset list used proxy
+		// log.Printf("Reset list proxy used:!!!!!!!", list_proxy_used)
+		list_proxy_used = list_proxy_used[:0]
+		current_item = 0
+	}
+	proxy_select = listproxies[current_item]
+	current_item = current_item +1
+	list_proxy_used = append(list_proxy_used, proxy_select)
+	return proxy_select
 }
 
 func main() {
