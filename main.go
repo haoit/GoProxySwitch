@@ -6,18 +6,17 @@ import (
 	"net"
 	"os"
 	"time"
-	// "math/rand"
 	"bufio"
-    // "fmt"
     "strings"
+	"math/rand"
 )
 
 var list_proxy_used []string;
 var current_item int = 0;
 
 
-func get_list_proxy() []string{
-	file, err := os.Open("listproxy.txt")
+func get_list_proxy(filename string) []string{
+	file, err := os.Open(filename)
  
     if err != nil {
         log.Fatalf("failed opening file: %s", err)
@@ -39,9 +38,9 @@ func get_list_proxy() []string{
     return txtlines
 }
 
-func select_proxy() string{
+func select_untrust_proxy() string{
 	var proxy_select string
-	listproxies := get_list_proxy()
+	listproxies := get_list_proxy("listproxy.txt")
 
 	//Get random value proxy
 	// rand.Seed(time.Now().Unix())
@@ -58,11 +57,19 @@ func select_proxy() string{
 	return proxy_select
 }
 
+func select_trust_proxy() string{
+	listproxies := get_list_proxy("trustproxy.txt")
+
+	//Get random value proxy
+	rand.Seed(time.Now().Unix())
+	return listproxies[rand.Intn(len(listproxies))]
+}
+
 func main() {
 	// if len(os.Args) <= 2 {
 	// 	log.Fatal("usage: portfw local:port remote:port")
 	// }
-	localAddrString := "0.0.0.0:8181"
+	localAddrString := "0.0.0.0:57812"
 
 	localAddr, err := net.ResolveTCPAddr("tcp", localAddrString)
 	if localAddr == nil {
@@ -80,7 +87,7 @@ func main() {
 			log.Printf("accept failed: %s", err)
 			continue
 		}
-		remoteAddrString := select_proxy()
+		remoteAddrString := select_untrust_proxy()
 		go forward(conn, remoteAddrString)
 	}
 }
@@ -90,9 +97,17 @@ func forward(local net.Conn, remoteAddr string) {
 
 	remote, err := net.DialTimeout("tcp", remoteAddr, time.Duration(5*time.Second))
 	if remote == nil {
-		log.Printf("remote dial failed: %v\n", err)
-		local.Close()
-		return
+		log.Printf("remote dial failed1: %v\n", err)
+		remoteAddr = select_trust_proxy()
+		remote, err = net.DialTimeout("tcp", remoteAddr, time.Duration(5*time.Second))
+		log.Printf("Using trust proxy: %s\n", remoteAddr)
+		if remote == nil{
+			log.Printf("remote dial failed2: %v\n", err)
+			local.Close()
+			return
+		}
+		// local.Close()
+		// return
 	}
 	go func() {
 		defer local.Close()
